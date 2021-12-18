@@ -146,6 +146,12 @@ class RdbCallback(object):
         """
         pass
 
+    def key(self, key):
+        """
+        Callback to handle key name before value was parsed
+        """
+        pass
+
     def set(self, key, value, expiry, info):
         """
         Callback to handle a key with a string value and an optional expiry
@@ -374,7 +380,7 @@ class RdbParser(object):
         If filter is None, results will not be filtered
         If dbs, keys or types is None or Empty, no filtering will be done on that axis
     """
-    def __init__(self, callback, filters = None) :
+    def __init__(self, callback, filters=None, ignore_values=False):
         """
             `callback` is the object that will receive parse events
         """
@@ -385,6 +391,7 @@ class RdbParser(object):
         self._freq = None
         self.init_filter(filters)
         self._rdb_version = 0
+        self._ignore_values = ignore_values
 
     def parse(self, filename):
         """
@@ -458,7 +465,12 @@ class RdbParser(object):
                 if self.matches_filter(db_number):
                     self._key = self.read_string(f)
                     if self.matches_filter(db_number, self._key, data_type):
-                        self.read_object(f, data_type)
+                        self._callback.key(self._key)
+
+                        if self._ignore_values:
+                            self.skip_object(f, data_type)
+                        else:
+                            self.read_object(f, data_type)
                     else:
                         self.skip_object(f, data_type)
                 else :
